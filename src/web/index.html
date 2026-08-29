@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Survival Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #121212; color: #fff; margin: 0; padding: 20px; display: flex; gap: 20px; height: 100vh; overflow: hidden; box-sizing: border-box;}
+        #canvas-container { position: relative; flex: 1; display: flex; justify-content: center; align-items: center; background: #1e1e1e; border-radius: 12px; overflow: hidden; }
+        canvas { background: #2a2a2a; width: 100%; height: 100%; display: block;}
+        
+        #controls-wrapper { width: 350px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding-right: 5px;}
+        .control-group { background: #1e1e1e; padding: 15px; border-radius: 8px; border: 1px solid #333;}
+        h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: #ddd; border-bottom: 1px solid #333; padding-bottom: 5px;}
+        .btn { background: #4caf50; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 5px; }
+        .btn.stop { background: #f44336; }
+        .btn.ff { background: #ff9800; }
+        .btn.fs { background: #9c27b0; }
+        .btn:hover { opacity: 0.9; }
+        label { display: block; margin-top: 10px; font-size: 0.85em; color: #aaa; }
+        input[type="range"] { width: 100%; margin-top: 5px; }
+        input[type="color"] { width: 100%; height: 40px; border: none; padding: 0; background: none; }
+        input[type="checkbox"] { margin-top: 5px; transform: scale(1.2); }
+        select { width: 100%; padding: 8px; margin-top: 5px; background: #333; color: white; border: 1px solid #444; border-radius: 4px; }
+        .stat { font-size: 1.2em; font-weight: bold; margin-bottom: 5px; }
+        
+        #stats-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(30,30,30,0.98);
+            display: none; flex-direction: column; padding: 20px; box-sizing: border-box;
+            z-index: 10; overflow-y: auto;
+        }
+        .charts-grid {
+            display: flex; flex-direction: column; gap: 20px; flex: 1; margin-top: 20px;
+        }
+        .chart-box {
+            background: #222; border-radius: 8px; padding: 15px; flex: 1; min-height: 250px;
+            display: flex; flex-direction: column;
+        }
+        .chart-box h4 { margin: 0 0 10px 0; color: #bbb; text-align: center; }
+        .chart-container-inner { flex: 1; position: relative; }
+        .close-btn { align-self: flex-end; background: #fff; color: #000; padding: 5px 15px; cursor: pointer; border-radius: 5px; border: none; font-weight: bold;}
+    </style>
+</head>
+<body>
+
+<div id="canvas-container">
+    <canvas id="simCanvas"></canvas>
+    <div id="stats-overlay">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="winner-text">Evolution Analytics Dashboard</h2>
+            <div>
+                <button class="btn" style="background: #e91e63; display: inline-block; width: auto; margin-right: 10px;" id="exportVideoBtn" disabled>Download Video</button>
+                <button class="btn" style="background: #2196f3; display: inline-block; width: auto; margin-right: 10px;" id="exportPdfBtn">Export PDF Report</button>
+                <button class="close-btn" onclick="document.getElementById('stats-overlay').style.display='none'">Close</button>
+            </div>
+        </div>
+        <div class="charts-grid">
+            <div class="chart-box">
+                <h4>Population by Group</h4>
+                <div class="chart-container-inner"><canvas id="popChart"></canvas></div>
+            </div>
+            <div class="chart-box">
+                <h4>Evolution (Speed vs Sense vs Size)</h4>
+                <div class="chart-container-inner"><canvas id="geneChart"></canvas></div>
+            </div>
+            <div class="chart-box">
+                <h4>Causes of Death</h4>
+                <div class="chart-container-inner"><canvas id="deathChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="controls-wrapper">
+    <div class="stat" id="eraCounter">Day: 0</div>
+    
+    <div class="control-group">
+        <h3>Simulation Controls</h3>
+        <button class="btn" id="startBtn">START</button>
+        <button class="btn stop" id="stopBtn">STOP (View Stats)</button>
+        <button class="btn ff" id="ffBtn">FAST-FORWARD (100 Days)</button>
+        <button class="btn fs" id="fsBtn">FULLSCREEN</button>
+        
+        <label>Simulation Speed (1x - 10x)</label>
+        <input type="range" id="simSpeed" min="1" max="10" step="1" value="1">
+    </div>
+    
+    <div class="control-group">
+        <h3>World Settings (Primer Logic)</h3>
+        
+        <label>Utopia Mode (No Starvation)</label>
+        <input type="checkbox" id="cfgUtopia">
+        
+        <label>Food Abundance (Multiplier)</label>
+        <input type="range" id="cfgFood" min="0.5" max="3" step="0.1" value="1.5">
+        
+        <label>Cost of Fighting (Hawk vs Hawk Death %)</label>
+        <input type="range" id="cfgCost" min="0" max="1" step="0.05" value="0.5">
+        
+        <label>Mutation Rate</label>
+        <input type="range" id="cfgMutation" min="0" max="0.5" step="0.01" value="0.05">
+    </div>
+    
+    <div class="control-group">
+        <h3>Auto-Stop Conditions</h3>
+        <label><input type="checkbox" id="stopOneRace"> Stop when 1 race left</label>
+        <label><input type="checkbox" id="stopExtinction"> Stop on Extinction</label>
+        <label><input type="checkbox" id="stopPop50"> Stop when a race hits 50 population</label>
+        <label><input type="checkbox" id="stopDay100"> Stop at Day 100</label>
+    </div>
+    
+    <div class="control-group">
+        <h3>Pre-Loaded Scenarios</h3>
+        <select id="scenarioSelect">
+            <option value="bears_vs_fists">Bears vs Fists</option>
+            <option value="all_vs_all">All vs All (4 Factions)</option>
+            <option value="lone_wolf_vs_pack">Lone Wolves vs Pack</option>
+            <option value="the_hive_awakens">The Hive Awakens (2 Hives)</option>
+            <option value="traders_vs_workers">Traders vs Workers</option>
+            <option value="survival_of_the_fittest">Survival of the Fittest (5 Random)</option>
+        </select>
+        <button class="btn ff" id="loadScenarioBtn" style="margin-top:5px;">LOAD SCENARIO</button>
+    </div>
+
+    <div class="control-group">
+        <h3>Add Group</h3>
+        
+        <label>Preset Allegorical Group</label>
+        <select id="grpPreset">
+            <option value="custom">Custom</option>
+            <option value="Share-Bears">The Share-Bears</option>
+            <option value="Cog-Workers">The Cog-Workers</option>
+            <option value="Iron-Fists">The Iron-Fists</option>
+            <option value="Free-Traders">The Free-Traders</option>
+            <option value="Hive-Mind">The Hive-Mind</option>
+        </select>
+        
+        <label>Altruism vs Egoism</label>
+        <input type="range" id="grpAltruism" min="0" max="1" step="0.1" value="0.5">
+        
+        <label>Color (Auto-set by Altruism)</label>
+        <input type="color" id="grpColor" value="#00ff00">
+        
+        <label>Shape</label>
+        <select id="grpShape">
+            <option value="D4">D4 (Triangle)</option>
+            <option value="D6">D6 (Square)</option>
+            <option value="D8">D8 (Diamond)</option>
+            <option value="D20">D20 (Hexagon)</option>
+        </select>
+        
+        <label>Resource Efficiency</label>
+        <input type="range" id="grpEfficiency" min="0" max="1" step="0.1" value="0.5">
+
+        <button class="btn" id="addGroupBtn" style="margin-top:15px; background:#3498db;">Add 20 Entities</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+    
+    function resizeCanvas() {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    let ws = new WebSocket(`ws://${window.location.host}/ws`);
+    
+    ws.onopen = () => {
+        // Delay slightly to ensure UI is ready if needed, though not strictly required
+        setTimeout(() => {
+            sendConfig();
+            sendStopConditions();
+        }, 100);
+    };
+    
+    let state = { agents: [], foods: [], buildings: [], constructions: [] };
+    let chartInstances = {};
+    let lastUpdateTime = performance.now();
+    let mediaRecorder;
+    let recordedChunks = [];
+    
+    function startRecording() {
+        const stream = canvas.captureStream(30); // 30 FPS
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        recordedChunks = [];
+        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+        mediaRecorder.start();
+        document.getElementById('exportVideoBtn').disabled = true;
+    }
+    
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop();
+            document.getElementById('exportVideoBtn').disabled = false;
+        }
+    }
+
+    document.getElementById('exportVideoBtn').onclick = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'evolution_animation.webm';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "STATE") {
+            document.getElementById('eraCounter').innerText = `Day: ${data.day}`;
+            state.agents = data.agents;
+            state.foods = data.foods;
+            lastUpdateTime = performance.now();
+        } else if (data.type === "HISTORY") {
+            stopRecording();
+            if(data.winner) {
+                document.getElementById('winner-text').innerText = `Evolution Analytics Dashboard - 👑 ${data.winner}`;
+            } else {
+                document.getElementById('winner-text').innerText = `Evolution Analytics Dashboard`;
+            }
+            showChart(data.history, data.groups);
+        }
+    };
+
+    function hexToRgb(hex) {
+        let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? [
+            parseInt(result[1], 16),
+            parseInt(result[2], 16),
+            parseInt(result[3], 16)
+        ] : [255, 255, 255];
+    }
+    function rgbToHex(r, g, b) {
+        return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
+    }
+
+    document.getElementById('grpAltruism').oninput = (e) => {
+        const val = parseFloat(e.target.value);
+        let r=0, g=0, b=0;
+        if(val > 0.5) { 
+            const factor = (val - 0.5) * 2;
+            g = 255 * (1 - factor);
+            b = 255 * factor;
+        } else { 
+            const factor = val * 2;
+            r = 255 * (1 - factor);
+            g = 255 * factor;
+        }
+        document.getElementById('grpColor').value = rgbToHex(Math.round(r), Math.round(g), Math.round(b));
+    };
+
+    const PRESETS = {
+        "Share-Bears": { color: "#0000ff", shape: "D20", altruism: 0.9, efficiency: 0.4 },
+        "Cog-Workers": { color: "#00ff00", shape: "D6", altruism: 0.5, efficiency: 0.9 },
+        "Iron-Fists": { color: "#ff0000", shape: "D4", altruism: 0.1, efficiency: 0.6 },
+        "Free-Traders": { color: "#ff8800", shape: "D8", altruism: 0.3, efficiency: 0.8 },
+        "Hive-Mind": { color: "#0000ff", shape: "D12", altruism: 1.0, efficiency: 0.7 }
+    };
+    
+    document.getElementById('grpPreset').onchange = (e) => {
+        const preset = PRESETS[e.target.value];
+        if (preset) {
+            document.getElementById('grpColor').value = preset.color;
+            document.getElementById('grpShape').value = preset.shape;
+            document.getElementById('grpAltruism').value = preset.altruism;
+            document.getElementById('grpEfficiency').value = preset.efficiency;
+        }
+    };
+
+    function sendConfig() {
+        ws.send(JSON.stringify({
+            type: 'SET_GLOBAL_CFG',
+            config: {
+                utopia_mode: document.getElementById('cfgUtopia').checked,
+                food_multiplier: document.getElementById('cfgFood').value,
+                cost_of_fighting: document.getElementById('cfgCost').value,
+                mutation_rate: document.getElementById('cfgMutation').value
+            }
+        }));
+    }
+    
+    document.getElementById('cfgUtopia').onchange = sendConfig;
+    document.getElementById('cfgFood').oninput = sendConfig;
+    document.getElementById('cfgCost').oninput = sendConfig;
+    document.getElementById('cfgMutation').oninput = sendConfig;
+    
+    function sendStopConditions() {
+        ws.send(JSON.stringify({
+            type: 'SET_STOP_CONDITIONS',
+            config: {
+                one_race: document.getElementById('stopOneRace').checked,
+                extinction: document.getElementById('stopExtinction').checked,
+                pop_50: document.getElementById('stopPop50').checked,
+                day_100: document.getElementById('stopDay100').checked
+            }
+        }));
+    }
+    
+    document.getElementById('stopOneRace').onchange = sendStopConditions;
+    document.getElementById('stopExtinction').onchange = sendStopConditions;
+    document.getElementById('stopPop50').onchange = sendStopConditions;
+    document.getElementById('stopDay100').onchange = sendStopConditions;
+
+    document.getElementById('startBtn').onclick = () => { ws.send(JSON.stringify({type: 'START'})); startRecording(); };
+    document.getElementById('stopBtn').onclick = () => ws.send(JSON.stringify({type: 'STOP'}));
+    document.getElementById('ffBtn').onclick = () => { ws.send(JSON.stringify({type: 'FAST_FORWARD', days: 100})); startRecording(); };
+    document.getElementById('simSpeed').oninput = (e) => ws.send(JSON.stringify({type: 'SET_SPEED', speed: e.target.value}));
+    
+    document.getElementById('loadScenarioBtn').onclick = () => {
+        const sc = document.getElementById('scenarioSelect').value;
+        ws.send(JSON.stringify({type: 'LOAD_SCENARIO', scenario: sc}));
+    };
+    
+    document.getElementById('fsBtn').onclick = () => {
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().catch(err => alert(`Error: ${err.message}`));
+        } else {
+            document.exitFullscreen();
+        }
+    };
+    
+    let nextGroupId = 1;
+    document.getElementById('addGroupBtn').onclick = () => {
+        const color = hexToRgb(document.getElementById('grpColor').value);
+        const dna = [
+            parseFloat(document.getElementById('grpAltruism').value),
+            parseFloat(document.getElementById('grpEfficiency').value),
+            0.8, 0.5, 0.5 
+        ];
+        ws.send(JSON.stringify({
+            type: 'ADD_GROUP',
+            config: { id: nextGroupId++, count: 20, color: color, shape: document.getElementById('grpShape').value, dna: dna }
+        }));
+    };
+
+    function drawPolygon(ctx, x, y, radius, sides) {
+        if (sides < 3) return;
+        ctx.beginPath();
+        const a = (Math.PI * 2)/sides;
+        ctx.translate(x,y);
+        ctx.moveTo(radius,0);
+        for (let i = 1; i < sides; i++) {
+            ctx.lineTo(radius*Math.cos(a*i), radius*Math.sin(a*i));
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.translate(-x,-y);
+    }
+
+    function renderLoop(time) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const scaleX = canvas.width / 800;
+        const scaleY = canvas.height / 600;
+        ctx.save();
+        ctx.scale(scaleX, scaleY);
+        
+        let dt = (time - lastUpdateTime) / 1000.0;
+        let speedMult = parseFloat(document.getElementById('simSpeed').value);
+        dt *= speedMult;
+        if (dt > 0.5) dt = 0; 
+        
+
+        // Draw Floor Grid
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= 800; x += 50) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 600); ctx.stroke();
+        }
+        for (let y = 0; y <= 600; y += 50) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(800, y); ctx.stroke();
+        }
+
+        // Draw foods (3D-ish spheres)
+        for(let f of state.foods) {
+            const rad = 6;
+            const grad = ctx.createRadialGradient(f.x - 2, f.y - 2, 1, f.x, f.y, rad);
+            if (f.type === 'fruit') {
+                grad.addColorStop(0, '#ffcc80'); grad.addColorStop(1, '#ff9800');
+            } else if (f.type === 'animal') {
+                grad.addColorStop(0, '#a1887f'); grad.addColorStop(1, '#795548');
+            } else {
+                grad.addColorStop(0, '#c5e1a5'); grad.addColorStop(1, '#8bc34a');
+            }
+            
+            // Food shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath(); ctx.arc(f.x, f.y + 3, rad, 0, Math.PI*2); ctx.fill();
+            
+            // Food body
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, rad, 0, Math.PI*2);
+            ctx.fill();
+        }
+        
+        // Draw agents
+        for (const e of state.agents) {
+            let renderX = e.x + (e.vx * dt);
+            let renderY = e.y + (e.vy * dt);
+            renderX = Math.max(10, Math.min(790, renderX));
+            renderY = Math.max(10, Math.min(590, renderY));
+            
+            // Bobbing animation based on agent speed and time
+            let speedSq = e.vx*e.vx + e.vy*e.vy;
+            let bobOffset = 0;
+            if (speedSq > 1) { // Only bob if moving
+                bobOffset = Math.abs(Math.sin((time + e.id * 100) / 150)) * 6;
+            }
+            
+            let size = e.age === 3 ? 16 : (e.age === 2 ? 14 : 8);
+            size = size * (0.5 + (e.size || 0.5)); // Scale by genetic size
+            let sides = 4;
+            if(e.shape === 'D4') sides = 3;
+            else if(e.shape === 'D6') sides = 4;
+            else if(e.shape === 'D8') sides = 5;
+            else if(e.shape === 'D20') sides = 6;
+            
+            // 3D Shadow (fixed on ground)
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            drawPolygon(ctx, renderX + size/4, renderY + size/2, size * 0.9, sides);
+            
+            // Apply bobbing to the body
+            let bodyY = renderY - bobOffset;
+            
+            // 3D Base (Darker)
+            const rgb = e.color.match(/\d+/g);
+            if (rgb) {
+                const darker = `rgb(${Math.max(0, rgb[0]-80)},${Math.max(0, rgb[1]-80)},${Math.max(0, rgb[2]-80)})`;
+                ctx.fillStyle = darker;
+                drawPolygon(ctx, renderX, bodyY + size/3.5, size, sides);
+            }
+            
+            // 3D Top
+            ctx.fillStyle = e.color;
+            drawPolygon(ctx, renderX, bodyY, size, sides);
+            
+            // Eyes
+            ctx.fillStyle = 'white';
+            ctx.fillRect(renderX - size/3, bodyY - size/3, 2, 2); 
+            ctx.fillRect(renderX + size/3 - 2, bodyY - size/3, 2, 2); 
+            
+            ctx.save();
+            ctx.translate(renderX, bodyY + size/2.5);
+            ctx.rotate(Math.PI / 2);
+            ctx.font = `bold ${size/1.2}px monospace`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(e.face, 0, 0);
+            ctx.restore();
+        }
+        ctx.restore();
+        requestAnimationFrame(renderLoop);
+    }
+    requestAnimationFrame(renderLoop);
+
+    function showChart(history, groupsInfo) {
+        document.getElementById('stats-overlay').style.display = 'flex';
+        const labels = Object.keys(history); 
+        
+        if(chartInstances['pop']) chartInstances['pop'].destroy();
+        if(chartInstances['gene']) chartInstances['gene'].destroy();
+        if(chartInstances['death']) chartInstances['death'].destroy();
+
+        // 1. Population Chart
+        const popDatasets = [];
+        for (let groupId in groupsInfo) {
+            const col = groupsInfo[groupId];
+            const data = labels.map(day => history[day].counts[groupId] || 0);
+            popDatasets.push({
+                label: `Group ${groupId}`, data: data,
+                borderColor: `rgb(${col[0]}, ${col[1]}, ${col[2]})`,
+                backgroundColor: `rgba(${col[0]}, ${col[1]}, ${col[2]}, 0.2)`,
+                borderWidth: 2, fill: true, tension: 0.4
+            });
+        }
+        chartInstances['pop'] = new Chart(document.getElementById('popChart').getContext('2d'), {
+            type: 'line', data: { labels: labels, datasets: popDatasets },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#fff' } } }, scales: { x: { ticks: { color: '#ccc'} }, y: { ticks: { color: '#ccc'} } } }
+        });
+
+        // 2. Evolution Bubble Chart (Primer style)
+        const lastDay = labels[labels.length - 1];
+        const lastDayTraits = history[lastDay] ? (history[lastDay].traits || []) : [];
+        
+        const groupPoints = {};
+        lastDayTraits.forEach(t => {
+            if (!groupPoints[t.group]) groupPoints[t.group] = [];
+            groupPoints[t.group].push({
+                x: t.speed,
+                y: t.sense,
+                r: 4 + (t.size * 10), // Bubble radius based on size trait
+                altruism: t.altruism
+            });
+        });
+        
+        const bubbleDatasets = [];
+        for (let groupId in groupPoints) {
+            const col = groupsInfo[groupId] || [255,255,255];
+            bubbleDatasets.push({
+                label: `Group ${groupId}`,
+                data: groupPoints[groupId],
+                backgroundColor: `rgba(${col[0]}, ${col[1]}, ${col[2]}, 0.7)`,
+                borderColor: `rgb(${col[0]}, ${col[1]}, ${col[2]})`
+            });
+        }
+        
+        chartInstances['gene'] = new Chart(document.getElementById('geneChart').getContext('2d'), {
+            type: 'bubble', 
+            data: { datasets: bubbleDatasets },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { labels: { color: '#fff' } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const pt = context.raw;
+                                return `Speed: ${pt.x.toFixed(2)} | Sense: ${pt.y.toFixed(2)} | Size: ${((pt.r-4)/10).toFixed(2)}`;
+                            }
+                        }
+                    }
+                }, 
+                scales: { 
+                    x: { min: 0, max: 1, title: {display: true, text: 'Speed', color: '#fff'}, ticks: { color: '#ccc'} }, 
+                    y: { min: 0, max: 1, title: {display: true, text: 'Sense Radius', color: '#fff'}, ticks: { color: '#ccc'} } 
+                } 
+            }
+        });
+
+        // 3. Deaths Chart
+        const starvData = labels.map(day => history[day].deaths_starvation);
+        const fightData = labels.map(day => history[day].deaths_fight);
+        chartInstances['death'] = new Chart(document.getElementById('deathChart').getContext('2d'), {
+            type: 'bar', data: { labels: labels, datasets: [
+                { label: 'Starvation', data: starvData, backgroundColor: '#f39c12' },
+                { label: 'Fights (Hawks)', data: fightData, backgroundColor: '#e74c3c' }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#fff' } } }, scales: { x: { stacked: true, ticks: { color: '#ccc'} }, y: { stacked: true, ticks: { color: '#ccc'} } } }
+        });
+    }
+
+    document.getElementById('exportPdfBtn').onclick = () => {
+        // Create a temporary container for the PDF
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.padding = '20px';
+        pdfContainer.style.background = '#121212';
+        pdfContainer.style.color = '#fff';
+        pdfContainer.style.fontFamily = 'Inter, sans-serif';
+        
+        // Add Header
+        const header = document.createElement('h1');
+        header.innerText = document.getElementById('winner-text').innerText;
+        header.style.borderBottom = '2px solid #333';
+        header.style.paddingBottom = '10px';
+        pdfContainer.appendChild(header);
+        
+        // Add Config Info (Page 1)
+        const configInfo = document.createElement('div');
+        configInfo.style.marginBottom = '20px';
+        configInfo.style.fontSize = '18px';
+        configInfo.innerHTML = `
+            <h3>Simulation Configuration</h3>
+            <ul>
+                <li><b>Food Abundance:</b> ${document.getElementById('cfgFood').value}x</li>
+                <li><b>Mutation Rate:</b> ${document.getElementById('cfgMutation').value}</li>
+                <li><b>Cost of Fighting:</b> ${document.getElementById('cfgCost').value}</li>
+                <li><b>Utopia Mode:</b> ${document.getElementById('cfgUtopia').checked ? 'Yes' : 'No'}</li>
+                <li><b>Stop Conditions Active:</b> 
+                    ${document.getElementById('stopOneRace').checked ? '1-Race, ' : ''}
+                    ${document.getElementById('stopExtinction').checked ? 'Extinction, ' : ''}
+                    ${document.getElementById('stopPop50').checked ? 'Pop=50, ' : ''}
+                    ${document.getElementById('stopDay100').checked ? 'Day=100' : ''}
+                </li>
+            </ul>
+        `;
+        pdfContainer.appendChild(configInfo);
+        
+        // Add Signature to Page 1
+        const signature = document.createElement('div');
+        signature.style.marginTop = '40px';
+        signature.style.textAlign = 'right';
+        signature.style.fontStyle = 'italic';
+        signature.style.color = '#aaa';
+        signature.innerHTML = 'Report Generated by<br><b>AI_AutisticIntelligence</b>';
+        pdfContainer.appendChild(signature);
+        
+        // Add Charts (1 per page)
+        const originalCanvases = document.querySelectorAll('.charts-grid canvas');
+        const chartTitles = document.querySelectorAll('.charts-grid h4');
+        
+        for (let i = 0; i < originalCanvases.length; i++) {
+            const pageDiv = document.createElement('div');
+            // CSS to force page break
+            pageDiv.style.pageBreakBefore = 'always';
+            pageDiv.style.width = '100%';
+            pageDiv.style.height = '180mm'; // Approximate A4 landscape inner height
+            pageDiv.style.display = 'flex';
+            pageDiv.style.flexDirection = 'column';
+            pageDiv.style.paddingTop = '10px';
+            
+            const title = document.createElement('h3');
+            title.innerText = chartTitles[i].innerText;
+            title.style.textAlign = 'center';
+            title.style.color = '#ccc';
+            pageDiv.appendChild(title);
+            
+            const canvasWrapper = document.createElement('div');
+            canvasWrapper.style.flex = '1';
+            canvasWrapper.style.position = 'relative';
+            canvasWrapper.style.display = 'flex';
+            canvasWrapper.style.justifyContent = 'center';
+            canvasWrapper.style.alignItems = 'center';
+            
+            const clonedCanvas = document.createElement('canvas');
+            clonedCanvas.width = originalCanvases[i].width;
+            clonedCanvas.height = originalCanvases[i].height;
+            // Scale canvas to fit page
+            clonedCanvas.style.maxWidth = '100%';
+            clonedCanvas.style.maxHeight = '100%';
+            const ctx = clonedCanvas.getContext('2d');
+            ctx.drawImage(originalCanvases[i], 0, 0);
+            
+            canvasWrapper.appendChild(clonedCanvas);
+            pageDiv.appendChild(canvasWrapper);
+            pdfContainer.appendChild(pageDiv);
+        }
+        
+        // Use html2pdf
+        const opt = {
+          margin:       10,
+          filename:     'evolution_report.pdf',
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, backgroundColor: '#121212' },
+          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        };
+        
+        html2pdf().set(opt).from(pdfContainer).save();
+    };
+</script>
+</body>
+</html>

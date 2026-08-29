@@ -1,0 +1,80 @@
+{
+  "equilibrium": [
+    {
+      "survivors_by_group": {
+        "Share-Bears": 0,
+        "Cog-Workers": 0,
+        "Iron-Fists": 4,
+        "Free-Traders": 5,
+        "Hive-Mind": 0
+      },
+      "mixed_breeds": 0,
+      "total_survivors": 9,
+      "average_altruism": 0.20863364463287676
+    },
+    {
+      "survivors_by_group": {
+        "Share-Bears": 0,
+        "Cog-Workers": 2,
+        "Iron-Fists": 8,
+        "Free-Traders": 7,
+        "Hive-Mind": 0
+      },
+      "mixed_breeds": 0,
+      "total_survivors": 17,
+      "average_altruism": 0.1949928317262246
+    }
+  ],
+  "abundance": [
+    {
+      "survivors_by_group": {
+        "Share-Bears": 38,
+        "Cog-Workers": 136,
+        "Iron-Fists": 309,
+        "Free-Traders": 259,
+        "Hive-Mind": 24
+      },
+      "mixed_breeds": 0,
+      "total_survivors": 766,
+      "average_altruism": 0.29918457979265656
+    },
+    {
+      "survivors_by_group": {
+        "Share-Bears": 52,
+        "Cog-Workers": 157,
+        "Iron-Fists": 274,
+        "Free-Traders": 410,
+        "Hive-Mind": 21
+      },
+      "mixed_breeds": 0,
+      "total_survivors": 914,
+      "average_altruism": 0.326078615353005
+    }
+  ],
+  "famine": [
+    {
+      "survivors_by_group": {
+        "Share-Bears": 0,
+        "Cog-Workers": 0,
+        "Iron-Fists": 0,
+        "Free-Traders": 0,
+        "Hive-Mind": 0
+      },
+      "mixed_breeds": 0,
+      "total_survivors": 0,
+      "average_altruism": 0
+    },
+    {
+      "survivors_by_group": {
+        "Share-Bears": 0,
+        "Cog-Workers": 0,
+        "Iron-Fists": 0,
+        "Free-Traders": 0,
+        "Hive-Mind": 0
+      },
+      "mixed_breeds": 0,
+      "total_survivors": 0,
+      "average_altruism": 0
+    }
+  ]
+}
