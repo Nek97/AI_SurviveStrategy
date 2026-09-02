@@ -4,10 +4,20 @@
  */
 
 .heroBanner {
-  padding: 4rem 0;
+  padding: 6rem 0;
   text-align: center;
   position: relative;
   overflow: hidden;
+  background: linear-gradient(135deg, var(--ifm-color-primary-darkest) 0%, var(--ifm-color-primary-light) 100%) !important;
+  color: #ffffff;
+  border-bottom: 2px solid var(--ifm-color-primary-light);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.1);
+}
+
+[data-theme='dark'] .heroBanner {
+  background: linear-gradient(135deg, #020617 0%, #1e1b4b 100%) !important;
+  border-bottom: 2px solid var(--ifm-color-primary);
+  color: var(--ifm-color-primary-lightest);
 }
 
 @media screen and (max-width: 996px) {

@@ -4,32 +4,29 @@ import styles from './styles.module.css';
 
 const FeatureList = [
   {
-    title: 'Easy to Use',
+    title: 'Behavioral Simulation',
     Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Observe how different AI societies with distinct ethical and behavioral traits (like Altruism, Aggression, and Efficiency) interact and evolve.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
+    title: 'Dynamic Environments',
     Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Simulations run across varied scenarios such as Equilibrium, Abundance, and Famine, forcing the AI agents to constantly adapt to survive.
       </>
     ),
   },
   {
-    title: 'Powered by React',
+    title: 'Extensible ECS Engine',
     Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Built on a highly optimized Entity-Component-System (ECS) architecture, allowing rapid iteration, scalability, and complex interactions.
       </>
     ),
   },

@@ -1,3 +1,8 @@
+---
+sidebar_position: 2
+title: Simulation Results
+---
+
 # Simulation Statistical Report
 
 This report analyzes the survivability, identity retention, and overall ethical standing of 5 allegorical societal groups across multiple environmental scenarios (100 runs per scenario).
