@@ -5,7 +5,7 @@ import styles from './styles.module.css';
 const FeatureList = [
   {
     title: 'Behavioral Simulation',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    img: require('@site/static/img/behavioral_simulation.jpg').default,
     description: (
       <>
         Observe how different AI societies with distinct ethical and behavioral traits (like Altruism, Aggression, and Efficiency) interact and evolve.
@@ -14,7 +14,7 @@ const FeatureList = [
   },
   {
     title: 'Dynamic Environments',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    img: require('@site/static/img/dynamic_environments.jpg').default,
     description: (
       <>
         Simulations run across varied scenarios such as Equilibrium, Abundance, and Famine, forcing the AI agents to constantly adapt to survive.
@@ -23,7 +23,7 @@ const FeatureList = [
   },
   {
     title: 'Extensible ECS Engine',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    img: require('@site/static/img/ecs_engine.jpg').default,
     description: (
       <>
         Built on a highly optimized Entity-Component-System (ECS) architecture, allowing rapid iteration, scalability, and complex interactions.
@@ -32,11 +32,11 @@ const FeatureList = [
   },
 ];
 
-function Feature({Svg, title, description}) {
+function Feature({img, title, description}) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
+        <img src={img} className={styles.featureSvg} alt={title} style={{borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', marginBottom: '1rem', objectFit: 'cover'}} />
       </div>
       <div className="text--center padding-horiz--md">
         <Heading as="h3">{title}</Heading>

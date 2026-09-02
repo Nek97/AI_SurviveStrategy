@@ -12,7 +12,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 const config = {
   title: 'AI Survive Strategy',
   tagline: 'Documentation and Guides',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/logo.jpg',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -72,7 +72,7 @@ const config = {
         title: 'AI Survive Strategy',
         logo: {
           alt: 'AI Survive Strategy Logo',
-          src: 'img/logo.svg',
+          src: 'img/logo.jpg',
         },
         items: [
           {
