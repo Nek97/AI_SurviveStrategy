@@ -32,8 +32,8 @@ export default function Home() {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title="Benvenuto"
-      description="Documentazione ufficiale e guide per AI Survive Strategy">
+      title="Welcome"
+      description="Official documentation and guides for AI Survive Strategy">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
